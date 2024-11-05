@@ -1,5 +1,11 @@
+postgres:
+  # host + port (without schema)
+  host:
+  db: telemetry
+  username: postgres
+  password: changeme
 prometheus:
-  # prometheus server host (incl. schema)
+  # prometheus server host (schema is optional, defaults to 'postgres://')
   server: https://set.me/in/settings/file
   api_path: "/api/v1/query_range"
   # full path to the query api endpoint 
