@@ -22,8 +22,8 @@ migrate = Migrate(app, db)
 api = Api(app, doc='/api/docs')  # Swagger UI will be available at /api/docs
 ns = api.namespace('api', description='API operations')
 
-sat_version_model = api.model('SatVersion', {
-    'id': fields.Integer(readOnly=True, description='The unique identifier of a SatVersion'),
+session_model = api.model('Session', {
+    'id': fields.Integer(readOnly=True, description='The unique identifier of a Session'),
     'jenkins_job': fields.String(required=True, description='The Jenkins job'),
     'sat_version': fields.String(required=True, description='The Sat version')
 })
@@ -35,7 +35,7 @@ instance_model = api.model('Instance', {
     'image': fields.String(required=True, description='The image of the instance'),
     'jenkins_url': fields.String(required=True, description='The Jenkins URL'),
     'job_sat_version': fields.String(required=True, description='The Sat version of the root automation job'),
-    'sat_version_id': fields.Integer(required=True, description='The Sat version ID'),
+    'session_id': fields.Integer(required=True, description='The Session ID'),
     'first_seen': fields.Integer(description='First seen timestamp'),
     'last_seen': fields.Integer(description='Last seen timestamp')
 })
@@ -45,11 +45,12 @@ container_model = api.model('Container', {
     'name': fields.String(required=True, description='The name of the container'),
     'image': fields.String(required=True, description='The image of the container'),
     'job_sat_version': fields.String(required=True, description='The Sat version of the root automation job'),
+    'session_id': fields.Integer(required=True, description='The Session ID'),
     'first_seen': fields.Integer(description='First seen timestamp'),
     'last_seen': fields.Integer(description='Last seen timestamp')
 })
 
-class SatVersion(db.Model):
+class Session(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     jenkins_job = db.Column(db.String(200), nullable=False)
     sat_version = db.Column(db.String(32, collation='numeric'), nullable=False)
@@ -66,7 +67,7 @@ class Instance(db.Model):
     name = db.Column(db.String(200), nullable=False, unique=True)
     flavor = db.Column(db.String(200), nullable=False)
     image = db.Column(db.String(200), nullable=False)
-    sat_version_id = db.Column(db.Integer, db.ForeignKey('sat_version.id'), nullable=False)
+    session_id = db.Column(db.Integer, db.ForeignKey('session.id'), nullable=False)
     first_seen = db.Column(db.DateTime, nullable=True)
     last_seen = db.Column(db.DateTime, nullable=True)
 
@@ -76,7 +77,7 @@ class Instance(db.Model):
             'name': self.name,
             'flavor': self.flavor,
             'image': self.image,
-            'sat_version_id': self.sat_version_id,
+            'session_id': self.session_id,
             'first_seen': self.first_seen.isoformat() if self.first_seen else None,
             'last_seen': self.last_seen.isoformat() if self.last_seen else None,
         }
@@ -94,24 +95,24 @@ class InstanceList(Resource):
         if jenkins_url is None:
             return {'message': 'jenkins_url is required'}, 400
 
-        # Query SatVersion model
-        sat_version_record = SatVersion.query.filter_by(jenkins_job=jenkins_url).first()
+        # Query Session model
+        session_record = Session.query.filter_by(jenkins_job=jenkins_url).first()
 
-        if not sat_version_record:
+        if not session_record:
             if job_sat_version is None:
                 return {'message': 'job_sat_version is required'}, 400
             app.logger.info(f'jenkins build for {job_sat_version}, {jenkins_url} not found, creating new record')
-            # Create new SatVersion if it does not exist
-            sat_version_record = SatVersion(
+            # Create new Session if it does not exist
+            session_record = Session(
                 sat_version=job_sat_version,
                 jenkins_job=jenkins_url
             )
-            db.session.add(sat_version_record)
+            db.session.add(session_record)
             db.session.commit()
 
-        if first_seen:
+        if first_seen is not None:
             first_seen = datetime.fromtimestamp(first_seen)
-        if last_seen:
+        if last_seen is not None:
             last_seen = datetime.fromtimestamp(last_seen)
 
         instance = Instance.query.filter_by(name=data['name']).first()
@@ -126,7 +127,7 @@ class InstanceList(Resource):
                 instance.last_seen = last_seen
             instance.flavor = data['flavor']
             instance.image = data['image']
-            instance.sat_version_id = sat_version_record.id
+            instance.session_id = session_record.id
             db.session.add(instance)
         else:
             # Create new instance
@@ -134,7 +135,7 @@ class InstanceList(Resource):
                 name=data['name'],
                 flavor=data['flavor'],
                 image=data['image'],
-                sat_version_id=sat_version_record.id,
+                session_id=session_record.id,
                 first_seen=first_seen,
                 last_seen=last_seen
             )
@@ -152,7 +153,7 @@ class Container(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False, unique=True)
     image = db.Column(db.String(200), nullable=False)
-    sat_version_id = db.Column(db.Integer, db.ForeignKey('sat_version.id'), nullable=False)
+    session_id = db.Column(db.Integer, db.ForeignKey('session.id'), nullable=False)
     first_seen = db.Column(db.DateTime, nullable=True)
     last_seen = db.Column(db.DateTime, nullable=True)
 
@@ -161,7 +162,7 @@ class Container(db.Model):
             'id': self.id,
             'name': self.name,
             'image': self.image,
-            'sat_version_id': self.sat_version_id,
+            'session_id': self.session_id,
             'first_seen': self.first_seen.isoformat() if self.first_seen else None,
             'last_seen': self.last_seen.isoformat() if self.last_seen else None,
         }
@@ -171,27 +172,32 @@ class ContainerList(Resource):
     @api.expect(container_model)
     def post(self):
         data = request.json
-        sat_version = data.get('job_sat_version')
+        job_sat_version = data.get('job_sat_version')
         jenkins_url = data.get('jenkins_url')
         first_seen = data.get('first_seen')
         last_seen = data.get('last_seen')
 
-        # Query SatVersion model
-        sat_version_record = SatVersion.query.filter_by(sat_version=sat_version, jenkins_job=jenkins_url).first()
+        if jenkins_url is None:
+            return {'message': 'jenkins_url is required'}, 400
 
-        if not sat_version_record:
-            app.logger.info(f'jenkins build for {sat_version}, {jenkins_url} not found, creating new record')
-            # Create new SatVersion if it does not exist
-            sat_version_record = SatVersion(
-                sat_version=sat_version,
+        # Query Session model
+        session_record = Session.query.filter_by(jenkins_job=jenkins_url).first()
+
+        if not session_record:
+            if job_sat_version is None:
+                return {'message': 'job_sat_version is required'}, 400
+            app.logger.info(f'jenkins build for {job_sat_version}, {jenkins_url} not found, creating new record')
+            # Create new Session if it does not exist
+            session_record = Session(
+                sat_version=job_sat_version,
                 jenkins_job=jenkins_url
             )
-            db.session.add(sat_version_record)
+            db.session.add(session_record)
             db.session.commit()
 
-        if first_seen:
+        if first_seen is not None:
             first_seen = datetime.fromtimestamp(first_seen)
-        if last_seen:
+        if last_seen is not None:
             last_seen = datetime.fromtimestamp(last_seen)
 
         container = Container.query.filter_by(name=data['name']).first()
@@ -205,13 +211,13 @@ class ContainerList(Resource):
                 app.logger.debug(f'updating last_seen from {container.last_seen} to {last_seen}')
                 container.last_seen = last_seen
             container.image = data['image']
-            container.sat_version_id = sat_version_record.id
+            container.session_id = session_record.id
             db.session.add(container)
         else:
             container = Container(
                 name=data['name'],
                 image=data['image'],
-                sat_version_id=sat_version_record.id,
+                session_id=session_record.id,
                 first_seen=first_seen,
                 last_seen=last_seen
             )
