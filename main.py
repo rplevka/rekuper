@@ -62,6 +62,13 @@ class Session(db.Model):
             'sat_version': self.sat_version,
         }
 
+@ns.route('/sessions')
+class SessionList(Resource):
+    def get(self):
+        sessions = Session.query.all()
+        return [session.to_dict() for session in sessions], 200
+
+
 class Instance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False, unique=True)
@@ -149,6 +156,10 @@ class InstanceList(Resource):
 
         return instance.to_dict(), 201
 
+    def get(self):
+        instances = Instance.query.all()
+        return [instance.to_dict() for instance in instances], 200
+
 class Container(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False, unique=True)
@@ -229,6 +240,10 @@ class ContainerList(Resource):
             return {'message': 'Duplicate key value violates unique constraint'}, 409
 
         return container.to_dict(), 201
+
+    def get(self):
+        containers = Container.query.all()
+        return [container.to_dict() for container in containers], 200
 
 if __name__ == '__main__':
     app.run(debug=True)
