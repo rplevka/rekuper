@@ -8,13 +8,18 @@ from sqlalchemy.exc import IntegrityError
 
 app = Flask('__name__')
 
-pg_creds = f'{settings.postgres.username}:{settings.postgres.password}'
-pg_host = settings.postgres.host
-if len(pg_host.split('://')) == 1:
-    app.logger.warning('DB connection schema not provided, assuming "postgres://"')
-    pg_host = f'postgres://{pg_host}'
+if settings.database.connection_string is None:
+    db_creds = f'{settings.database.username}:{settings.database.password}'
+    db_host = settings.database.host
+    if len(db_host.split('://')) == 1:
+        app.logger.warning('DB connection schema not provided, assuming "postgresql"')
+        db_host = f'postgresql://{db_creds}@{db_host}'
+    else:
+        db_scheme, db_host = db_host.split('://')
+        db_host = f'{db_scheme}://{db_creds}@{db_host}'
+    app.logger.debug(f'connection string: {db_host}/{settings.database.db}')
 
-app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{pg_creds}@{settings.postgres.host}/{settings.postgres.db}'
+app.config['SQLALCHEMY_DATABASE_URI'] = settings.database.connection_string or f'{db_host}/{settings.database.db}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # make the api operations list expanded by default in UI
 app.config['SWAGGER_UI_DOC_EXPANSION'] = 'list'

@@ -1,9 +1,11 @@
-postgres:
-  # host + port (without schema)
+database:
+  # schema://host:port (schema is optional, defaults to postgresql)
   host:
   db: telemetry
   username: postgres
   password: changeme
+  # optional, overrides all database settings
+  connection_string: sqlite:///fero.db
 prometheus:
   # prometheus server host (schema is optional, defaults to 'postgres://')
   server: https://set.me/in/settings/file
