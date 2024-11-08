@@ -61,7 +61,7 @@ container_model = api.model('Container', {
 class Session(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     jenkins_job = db.Column(db.String(200), nullable=False)
-    sat_version = db.Column(db.String(32, collation='numeric'), nullable=False)
+    sat_version = db.Column(db.String(32, collation='en-u-kn-true'), nullable=False)
 
     def to_dict(self):
         return {
