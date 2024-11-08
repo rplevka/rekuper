@@ -6,19 +6,3 @@ database:
   password: changeme
   # optional, overrides all database settings
   connection_string: sqlite:///fero.db
-prometheus:
-  # prometheus server host (schema is optional, defaults to 'postgres://')
-  server: https://set.me/in/settings/file
-  api_path: "/api/v1/query_range"
-  # full path to the query api endpoint 
-  api_url: "@format {this.prometheus.server}{this.prometheus.api_path}"
-  # how far into history shall we look
-  delta_hours: 240
-  # pormql query for each, instances and containers
-  query:
-    instances: "instance_power_state{CORRELATiOn_id=~'.*gating-trigger.*'}"
-    containers: ""
-  ssl_verify: False
-jenkins:
-  # jenkins API token for querying job build parameters
-  token: 
