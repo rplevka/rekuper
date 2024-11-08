@@ -16,10 +16,18 @@ if len(pg_host.split('://')) == 1:
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{pg_creds}@{settings.postgres.host}/{settings.postgres.db}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# make the api operations list expanded by default in UI
+app.config['SWAGGER_UI_DOC_EXPANSION'] = 'list'
+app.config['SWAGGER_UI_TRY_IT_OUT_ENABLED'] = True
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-api = Api(app, doc='/api/docs')  # Swagger UI will be available at /api/docs
+api = Api(
+    app,
+    title='Satellite Snap automation session API',
+    version='1.0',
+    description='API for tracking automation sessions and related testing resources (VMs, containers)'
+)
 ns = api.namespace('api', description='API operations')
 
 session_model = api.model('Session', {
