@@ -41,6 +41,11 @@ session_model = api.model('Session', {
     'sat_version': fields.String(required=True, description='The Sat version')
 })
 
+project_model = api.model('Project', {
+    'id': fields.Integer(readOnly=True, description='The unique identifier of a Project'),
+    'name': fields.String(required=True, description='The name of the project')
+})
+
 instance_model = api.model('Instance', {
     'id': fields.Integer(readOnly=True, description='The unique identifier of an Instance'),
     'name': fields.String(required=True, description='The name of the instance'),
@@ -49,6 +54,7 @@ instance_model = api.model('Instance', {
     'jenkins_url': fields.String(required=True, description='The Jenkins URL'),
     'job_sat_version': fields.String(required=True, description='The Sat version of the root automation job'),
     'session_id': fields.Integer(required=True, description='The Session ID'),
+    'project': fields.String(required=True, description='The project name'),
     'first_seen': fields.Integer(description='First seen timestamp'),
     'last_seen': fields.Integer(description='Last seen timestamp')
 })
@@ -59,6 +65,7 @@ container_model = api.model('Container', {
     'image': fields.String(required=True, description='The image of the container'),
     'job_sat_version': fields.String(required=True, description='The Sat version of the root automation job'),
     'session_id': fields.Integer(required=True, description='The Session ID'),
+    'project': fields.String(required=True, description='The project name'),
     'first_seen': fields.Integer(description='First seen timestamp'),
     'last_seen': fields.Integer(description='Last seen timestamp')
 })
@@ -81,6 +88,22 @@ class SessionList(Resource):
         sessions = Session.query.all()
         return [session.to_dict() for session in sessions], 200
 
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False, unique=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+        }
+
+@ns.route('/projects')
+class ProjectList(Resource):
+    @api.marshal_with(project_model)
+    def get(self):
+        projects = Project.query.all()
+        return [project.to_dict() for project in projects], 200
 
 class Instance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -88,6 +111,7 @@ class Instance(db.Model):
     flavor = db.Column(db.String(200), nullable=False)
     image = db.Column(db.String(200), nullable=False)
     session_id = db.Column(db.Integer, db.ForeignKey('session.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=True)
     first_seen = db.Column(db.DateTime, nullable=True)
     last_seen = db.Column(db.DateTime, nullable=True)
 
@@ -98,6 +122,7 @@ class Instance(db.Model):
             'flavor': self.flavor,
             'image': self.image,
             'session_id': self.session_id,
+            'project_id': self.project_id,
             'first_seen': self.first_seen.isoformat() if self.first_seen else None,
             'last_seen': self.last_seen.isoformat() if self.last_seen else None,
         }
@@ -107,6 +132,17 @@ class InstanceList(Resource):
     @api.expect(instance_model)
     def post(self):
         data = request.json
+        project_name = data.get('project')
+        if project_name is None:
+            return {'message': 'project is required'}, 400
+
+        # Get or create project
+        project = Project.query.filter_by(name=project_name).first()
+        if not project:
+            project = Project(name=project_name)
+            db.session.add(project)
+            db.session.commit()
+
         job_sat_version = data.get('job_sat_version')
         jenkins_url = data.get('jenkins_url')
         first_seen = data.get('first_seen')
@@ -148,6 +184,7 @@ class InstanceList(Resource):
             instance.flavor = data['flavor']
             instance.image = data['image']
             instance.session_id = session_record.id
+            instance.project_id = project.id
             db.session.add(instance)
         else:
             # Create new instance
@@ -156,6 +193,7 @@ class InstanceList(Resource):
                 flavor=data['flavor'],
                 image=data['image'],
                 session_id=session_record.id,
+                project_id=project.id,
                 first_seen=first_seen,
                 last_seen=last_seen
             )
@@ -178,6 +216,7 @@ class Container(db.Model):
     name = db.Column(db.String(200), nullable=False, unique=True)
     image = db.Column(db.String(200), nullable=False)
     session_id = db.Column(db.Integer, db.ForeignKey('session.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=True)
     first_seen = db.Column(db.DateTime, nullable=True)
     last_seen = db.Column(db.DateTime, nullable=True)
 
@@ -187,6 +226,7 @@ class Container(db.Model):
             'name': self.name,
             'image': self.image,
             'session_id': self.session_id,
+            'project_id': self.project_id,
             'first_seen': self.first_seen.isoformat() if self.first_seen else None,
             'last_seen': self.last_seen.isoformat() if self.last_seen else None,
         }
@@ -196,6 +236,17 @@ class ContainerList(Resource):
     @api.expect(container_model)
     def post(self):
         data = request.json
+        project_name = data.get('project')
+        if project_name is None:
+            return {'message': 'project is required'}, 400
+
+        # Get or create project
+        project = Project.query.filter_by(name=project_name).first()
+        if not project:
+            project = Project(name=project_name)
+            db.session.add(project)
+            db.session.commit()
+
         job_sat_version = data.get('job_sat_version')
         jenkins_url = data.get('jenkins_url')
         first_seen = data.get('first_seen')
@@ -236,12 +287,14 @@ class ContainerList(Resource):
                 container.last_seen = last_seen
             container.image = data['image']
             container.session_id = session_record.id
+            container.project_id = project.id
             db.session.add(container)
         else:
             container = Container(
                 name=data['name'],
                 image=data['image'],
                 session_id=session_record.id,
+                project_id=project.id,
                 first_seen=first_seen,
                 last_seen=last_seen
             )

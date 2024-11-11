@@ -1,5 +1,5 @@
 # Ignore dynaconf secret files
 **/*.pyc
 .secrets.*
-settings.yaml
+**/settings.yaml
 
