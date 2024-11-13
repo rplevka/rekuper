@@ -173,10 +173,10 @@ class InstanceList(Resource):
 
         instance = Instance.query.filter_by(name=data['name']).first()
         if instance:
-            app.logger.debug(f'matching instance: {instance}: last_seen={instance.last_seen} {last_seen}')
+            app.logger.debug(f'matching instance: {instance}[{instance.name}]: old={instance.first_seen}/{instance.last_seen} new={first_seen}{last_seen}')
             # Update existing instance
             if first_seen and first_seen < instance.first_seen:
-                app.logger.debug(f'updating first_seen from {instance.first_seen} to {first_seen}')
+                app.logger.warning(f'updating first_seen from {instance.first_seen} to {first_seen}')
                 instance.first_seen = first_seen
             if last_seen and last_seen > instance.last_seen:
                 app.logger.debug(f'updating last_seen from {instance.last_seen} to {last_seen}')
@@ -280,7 +280,7 @@ class ContainerList(Resource):
             app.logger.debug(f'matching container: {container}: last_seen={container.last_seen} {last_seen}')
             # Update existing container record 
             if first_seen and first_seen < container.first_seen:
-                app.logger.debug(f'updating first_seen from {container.first_seen} to {first_seen}')
+                app.logger.warning(f'updating first_seen from {container.first_seen} to {first_seen}')
                 container.first_seen = first_seen
             if last_seen and last_seen > container.last_seen:
                 app.logger.debug(f'updating last_seen from {container.last_seen} to {last_seen}')
