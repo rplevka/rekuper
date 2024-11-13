@@ -7,8 +7,7 @@ from flask_restx import Api, Resource, fields, Namespace
 from sqlalchemy.exc import IntegrityError
 
 app = Flask('__name__')
-
-if settings.database.connection_string is None:
+if settings.database.get('connection_string') is None:
     db_creds = f'{settings.database.username}:{settings.database.password}'
     db_host = settings.database.host
     if len(db_host.split('://')) == 1:
@@ -19,7 +18,7 @@ if settings.database.connection_string is None:
         db_host = f'{db_scheme}://{db_creds}@{db_host}'
     app.logger.debug(f'connection string: {db_host}/{settings.database.db}')
 
-app.config['SQLALCHEMY_DATABASE_URI'] = settings.database.connection_string or f'{db_host}/{settings.database.db}'
+app.config['SQLALCHEMY_DATABASE_URI'] = settings.database.get('connection_string') or f'{db_host}/{settings.database.db}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # make the api operations list expanded by default in UI
 app.config['SWAGGER_UI_DOC_EXPANSION'] = 'list'
