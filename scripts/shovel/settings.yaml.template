@@ -1,0 +1,26 @@
+# script-level logging
+log:
+  # log level - one of ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'].
+  level: INFO
+prometheus:
+  # prometheus server host (schema is optional, defaults to 'postgres://')
+  server: https://set.me/in/settings/file
+  api_path: "/api/v1/query_range"
+  # full path to the query api endpoint 
+  api_url: "@format {this.prometheus.server}{this.prometheus.api_path}"
+  # how far into history shall we look (default: 24)
+  lookback_hours: 24
+  # Query resolution step width (default 30)
+  # consult prometheus docs: https://prometheus.io/docs/prometheus/latest/querying/api/
+  step_seconds: 30
+  # promql query for each, instances and containers
+  query:
+    instances: "instance_power_state{CORRELATiOn_id=~'.*gating-trigger.*'}"
+    containers: "container_memory_swap{container_label_broker_CORRELATION_ID=~'.*gating-trigger.*'}"
+  ssl_verify: True
+jenkins:
+  # jenkins API settings and credentials for querying (session) job build parameters
+  api_uri_suffix: "api/json"
+  ssl_verify: True
+  username:
+  token:
