@@ -2,5 +2,6 @@ dynaconf
 Flask
 Flask-SQLAlchemy
 Flask-Migrate
+flask-restx
 psycopg2-binary
 requests
