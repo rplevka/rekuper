@@ -24,8 +24,7 @@ jobs:
         uses: redhat-actions/buildah-build@v2
         with:
           image: rekuper
-          tags:
-            - latest
+          tags: latest
           containerfiles: |
             ./Containerfile
 
