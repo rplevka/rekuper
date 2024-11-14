@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   rekuper_container:
@@ -33,7 +32,7 @@ jobs:
         uses: redhat-actions/push-to-registry@v2
         with:
           image: rekuper
-          tags: lastest
+          tags: latest
           registry: ${{ secrets.QUAY_SERVER }}/${{ secrets.QUAY_NAMESPACE }}
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
