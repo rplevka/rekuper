@@ -1,4 +1,6 @@
-# rekuper
+<p align="center">
+    <img src="https://repository-images.githubusercontent.com/887823256/c3212a2b-0cb9-4cec-9d39-2311757ae063" width="70%" />
+</p>
 A simple HTTP API with a database, for keeping track of testing lab resource utilization across test atuomation sessions.
 The utility, `shovel` script is designed to extract the resource information by scraping TSDB (prometheus) metrics and pushing the processed data to `rekuper` database by calling its API endpoints. It can be regularly called by `cron` or spawned as a OSP `cron job` pod.
 
