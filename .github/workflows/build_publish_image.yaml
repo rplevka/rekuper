@@ -33,7 +33,7 @@ jobs:
         uses: redhat-actions/push-to-registry@v2
         with:
           image: rekuper
-          tags: ${{ steps.image_tag.outputs.IMAGE_TAG }}
+          tags: lastest
           registry: ${{ secrets.QUAY_SERVER }}/${{ secrets.QUAY_NAMESPACE }}
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
