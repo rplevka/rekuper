@@ -28,6 +28,11 @@ flask --app rekuper run
 The server uses port `5000` by default. The swagger UI should be accessible as a root page.
 
 ## Container setup
+Build the image
+```
+podman build -t localhost/rekuper:0.1 .
+```
+
 Assumuing the database is also going to be run as local container:
 ```
 # prepare common network
