@@ -1,0 +1,40 @@
+# Update rekuper image on quay.
+name: update_rekuper_image
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  rekuper_container:
+    name: Update rekuper container image on Quay.
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # do not store the auth token in git config
+          persist-credentials: false
+
+      - name: Build rekuper image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: rekuper
+          tags:
+            - latest
+          containerfiles: |
+            ./Containerfile
+
+      - name: Push rekuper image to quay.io
+        id: push-to-quay
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: rekuper
+          tags: ${{ steps.image_tag.outputs.IMAGE_TAG }}
+          registry: ${{ secrets.QUAY_SERVER }}/${{ secrets.QUAY_NAMESPACE }}
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
