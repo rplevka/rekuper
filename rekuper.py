@@ -3,8 +3,9 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_restx import Api, Resource, fields, Namespace
-from sqlalchemy.exc import IntegrityError
+from flask_restx import Api, Resource, fields
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 app = Flask('__name__')
 if settings.database.get('connection_string') is None:
@@ -33,6 +34,19 @@ api = Api(
     description='API for tracking automation sessions and related testing resources (VMs, containers)'
 )
 ns = api.namespace('api', description='API operations')
+
+def check_db_connection():
+    try:
+        # Execute a simple query
+        db.session.execute(text('SELECT 1'))
+        print("Database connection is valid.")
+    except SQLAlchemyError as e:
+        print(f"Database connection is not valid: {e}")
+        raise SystemExit("Exiting due to database connection failure.")
+
+# Call the function to check the database connection during startup
+with app.app_context():
+    check_db_connection()
 
 session_model = api.model('Session', {
     'id': fields.Integer(readOnly=True, description='The unique identifier of a Session'),
