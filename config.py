@@ -1,7 +1,7 @@
 from dynaconf import Dynaconf
 
 settings = Dynaconf(
-    envvar_prefix="DYNACONF",
+    envvar_prefix="REKUPER",
     settings_files=['settings.yaml'],
 )
 
