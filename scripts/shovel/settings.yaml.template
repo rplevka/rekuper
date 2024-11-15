@@ -6,7 +6,7 @@ prometheus:
   # prometheus server host (schema is optional, defaults to 'postgres://')
   server: https://set.me/in/settings/file
   api_path: "/api/v1/query_range"
-  # full path to the query api endpoint 
+  # full path to the query api endpoint
   api_url: "@format {this.prometheus.server}{this.prometheus.api_path}"
   # how far into history shall we look (default: 24)
   lookback_hours: 24

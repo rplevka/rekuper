@@ -51,7 +51,7 @@ podman run \
 ```
 > [!IMPORTANT]
 > At this point, you started an unitialized database. You have to initialize it by running the migration scripts. For this purpose, we'll run a 1-shot `rekuper` container and override the default command
->This should be use also on an initialized db every time there is a new migration. 
+>This should be use also on an initialized db every time there is a new migration.
 ```
 podman run \
     --rm \
