@@ -1,4 +1,3 @@
-import json
 import requests
 import time
 import urllib3
@@ -43,22 +42,12 @@ def parse_jenkins_job(correlation_id):
         if j.get("_class") == "hudson.model.ParametersAction"
     ]
     try:
-        job_params = job_param_actions[0]["parameters"]
-        umb_message_params = [
-            i["value"] for i in job_params if i["name"] == "CI_MESSAGE"
-        ]
+        job_params_list = job_param_actions[0]["parameters"]
+        job_params_dict = {p["name"]: p["value"] for p in job_params_list}
     except IndexError():
         log.error(f"no action of parameter type found for the given job: {jenkins_url}")
         raise
-    try:
-        # gotta replace single quotes with double quotes to make it a valid json :(
-        umb_message = json.loads(umb_message_params[0].replace("'", '"'))
-    except IndexError():
-        log.error(
-            f"error: no CI_MESSAGE parameters found for the given job: {jenkins_url}"
-        )
-        raise
-    sat_ver = f'{umb_message["satellite_version"]}-{umb_message["snap_version"]}'
+    sat_ver = f'{job_params_dict["sat_version"]}-{job_params_dict["snap_version"]}'
     jenkins_job_cache[correlation_id] = sat_ver
     return sat_ver
 
@@ -105,9 +94,15 @@ for resource in ["instances", "containers"]:
             payload_template = settings.rekuper[resource].payload.to_dict()
             for m in metrics:
                 # try to fetch the sat ver params from jenkins first
-                job_sat_version = parse_jenkins_job(
-                    m[0][payload_template["jenkins_url"]]
-                )
+                try:
+                    job_sat_version = parse_jenkins_job(
+                        m[0][payload_template["jenkins_url"]]
+                    )
+                except Exception as e:
+                    log.warning(
+                        f"failed to parse jenkins job parameters for {m[0][payload_template["jenkins_url"]]}: {e}"
+                    )
+                    continue
                 payload = {
                     "job_sat_version": job_sat_version,
                     "first_seen": m[1][0],
