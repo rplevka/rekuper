@@ -2,7 +2,7 @@ from dynaconf import Dynaconf, Validator
 
 settings = Dynaconf(
     envvar_prefix="SHOVEL",
-    settings_files=['settings.yaml'],
+    settings_files=["settings.yaml"],
     validators=[
         Validator("log.level", default="INFO"),
         Validator("prometheus.server", required=True),
@@ -18,7 +18,7 @@ settings = Dynaconf(
         Validator("rekuper.instances.payload.jenkins_url", required=True),
         Validator("rekuper.containers.payload.jenkins_url", required=True),
         Validator("jenkins.username", "jenkins.token", required=True),
-    ]
+    ],
 )
 
 # `envvar_prefix` = export envvars with `export DYNACONF_FOO=bar`.
